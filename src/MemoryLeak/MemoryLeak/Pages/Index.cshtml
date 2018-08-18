@@ -1,0 +1,215 @@
+﻿@page
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Home</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.min.js"></script>
+</head>
+<body>
+    <p>
+        <button id="collect-btn" type="button">Collect</button>
+    </p>
+
+    <canvas id="myChart" style="width: 500px;"></canvas>
+
+    <script>
+        var ctx = document.getElementById("myChart").getContext('2d');
+
+        var myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                datasets: [
+                    {
+                        label: 'Allocated',
+                        data: [],
+                        yAxisID: 'y-axis-memory',
+                        borderColor: 'red',
+                        backgroundColor: 'red',
+                        fill: false
+                    },
+                    {
+                        label: 'Working Set',
+                        data: [],
+                        yAxisID: 'y-axis-memory',
+                        borderColor: 'blue',
+                        backgroundColor: 'blue',
+                        fill: false
+                    },
+                    {
+                        label: 'Private Bytes',
+                        data: [],
+                        yAxisID: 'y-axis-memory',
+                        borderColor: 'purple',
+                        backgroundColor: 'purple',
+                        fill: false
+                    },
+                    {
+                        label: 'Gen 0',
+                        data: [],
+                        yAxisID: 'y-axis-collections',
+                        borderColor: 'green',
+                        backgroundColor: 'green',
+                        fill: false,
+                        showLine: false, // only show point
+                        pointStyle: 'triangle',
+                        pointRadius: 10
+
+                    },
+                    {
+                        label: 'Gen 1',
+                        data: [],
+                        yAxisID: 'y-axis-collections',
+                        borderColor: 'orange',
+                        backgroundColor: 'orange',
+                        fill: false,
+                        showLine: false, // only show point
+                        pointStyle: 'triangle',
+                        pointRadius: 10
+
+                    },
+                    {
+                        label: 'Gen 2',
+                        data: [],
+                        yAxisID: 'y-axis-collections',
+                        borderColor: 'black',
+                        backgroundColor: 'black',
+                        fill: false,
+                        showLine: false, // only show point
+                        pointStyle: 'triangle',
+                        pointRadius: 10
+
+                    },
+                    {
+                        label: 'CPU (%)',
+                        data: [],
+                        yAxisID: 'y-axis-percent',
+                        borderColor: 'back',
+                        backgroundColor: 'black',
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    xAxes: [{
+                        display: false,
+                        type: 'time',
+                        distribution: 'linear',
+                        ticks: {
+                            bounds: 'data'
+                        }
+                    }],
+                    yAxes: [{
+                        id: 'y-axis-memory',
+                        ticks: {
+                            beginAtZero: true,
+                            bounds: 'data',
+                            position: 'left'
+                        }
+                    },
+                    {
+                        id: 'y-axis-collections',
+                        display: false,
+                        ticks: {
+                            beginAtZero: true,
+                            min: 0,
+                            max: 2
+                        }
+                    },
+                    {
+                        id: 'y-axis-percent',
+                        display: true,
+                        ticks: {
+                            beginAtZero: true,
+                            min: 0,
+                            max: 100
+                        },
+                            position: 'right'
+                    }]
+                },
+                tooltips: {
+                    enabled: false
+                }
+            }
+        });
+
+        const diagnosticsUrl = "/api/diagnostics";
+        const collectUrl = "/api/collect";
+
+        const maxEntries = 50;
+        var allocated = myChart.data.datasets[0].data;
+        var workingSet = myChart.data.datasets[1].data;
+        var privateBytes = myChart.data.datasets[2].data;
+        var generation0 = myChart.data.datasets[3].data;
+        var generation1 = myChart.data.datasets[4].data;
+        var generation2 = myChart.data.datasets[5].data;
+        var cpu = myChart.data.datasets[6].data;
+        var previousGen0 = 0,
+            previousGen1 = 0,
+            previousGen2 = 0;
+
+        setInterval(function () {
+            fetch(diagnosticsUrl)
+                .then(response => {
+                    return response.json();
+                })
+                .then(diagnostics => {
+                    var now = new Date();
+                    allocated.push({ x: now, y: diagnostics.allocated / 1000000 });
+                    workingSet.push({ x: now, y: diagnostics.workingSet / 1000000 });
+                    privateBytes.push({ x: now, y: diagnostics.privateBytes / 1000000 });
+                    cpu.push({ x: now, y: diagnostics.cpu });
+
+                    if (previousGen2 < diagnostics.gen2) {
+                        generation2.push({ x: now, y: 1 });
+                        previousGen2 = diagnostics.gen2;
+                        previousGen1 = diagnostics.gen1;
+                        previousGen0 = diagnostics.gen0;
+                    }
+                    else if (previousGen1 < diagnostics.gen1) {
+                        generation1.push({ x: now, y: 1 });
+                        previousGen2 = diagnostics.gen2;
+                        previousGen1 = diagnostics.gen1;
+                        previousGen0 = diagnostics.gen0;
+                    }
+                    else if (previousGen0 < diagnostics.gen0) {
+                        generation0.push({ x: now, y: 1 });
+                        previousGen2 = diagnostics.gen2;
+                        previousGen1 = diagnostics.gen1;
+                        previousGen0 = diagnostics.gen0;
+                    }
+
+                    if (allocated.length > maxEntries) {
+                        let firstDate = allocated[0].x;
+
+                        allocated.shift();
+                        workingSet.shift();
+                        privateBytes.shift();
+                        cpu.shift();
+
+                        while (generation0.length > 0 && generation0[0].x < firstDate) generation0.shift();
+                        while (generation1.length > 0 && generation1[0].x < firstDate) generation1.shift();
+                        while (generation2.length > 0 && generation2[0].x < firstDate) generation2.shift();
+                    }
+
+                    myChart.update();
+                });
+        }, 300);
+
+        document.getElementById("collect-btn").addEventListener("click", function () { fetch(collectUrl); });
+
+
+    </script>
+</body>
+
+
+
+</html>
