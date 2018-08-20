@@ -11,18 +11,46 @@
     <meta name="viewport" content="width=device-width" />
     <title>Home</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.min.js"></script>
+
+    <style>
+	    canvas{
+		    -moz-user-select: none;
+		    -webkit-user-select: none;
+		    -ms-user-select: none;
+	    }
+	    .chart-container {
+		    width: 800px;
+		    margin-left: 40px;
+		    margin-right: 40px;
+		    margin-bottom: 40px;
+	    }
+	    .container {
+		    display: flex;
+		    flex-direction: row;
+		    flex-wrap: wrap;
+		    justify-content: center;
+	    }
+	</style>
+
 </head>
 <body>
     <p>
-        <button id="collect-btn" type="button">Collect</button>
+        <button id="collect-btn" type="button" style="visibility:hidden">Collect</button>
     </p>
 
-    <canvas id="myChart" style="width: 500px;"></canvas>
+    <div class="container">
+        <div class="chart-container">
+            <canvas id="memory-canvas"></canvas>
+        </div>
+        <div class="chart-container">
+            <canvas id="performance-canvas"></canvas>
+        </div>
+	</div>
 
     <script>
-        var ctx = document.getElementById("myChart").getContext('2d');
-
-        var myChart = new Chart(ctx, {
+        Chart.defaults.global.defaultFontFamily = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+        var memoryContext = document.getElementById("memory-canvas").getContext('2d');
+        var memoryChart = new Chart(memoryContext, {
             type: 'line',
             data: {
                 datasets: [
@@ -32,6 +60,7 @@
                         yAxisID: 'y-axis-memory',
                         borderColor: 'red',
                         backgroundColor: 'red',
+                        pointRadius: 0,
                         fill: false
                     },
                     {
@@ -40,14 +69,7 @@
                         yAxisID: 'y-axis-memory',
                         borderColor: 'blue',
                         backgroundColor: 'blue',
-                        fill: false
-                    },
-                    {
-                        label: 'Private Bytes',
-                        data: [],
-                        yAxisID: 'y-axis-memory',
-                        borderColor: 'purple',
-                        backgroundColor: 'purple',
+                        pointRadius: 0,
                         fill: false
                     },
                     {
@@ -59,7 +81,7 @@
                         fill: false,
                         showLine: false, // only show point
                         pointStyle: 'triangle',
-                        pointRadius: 10
+                        pointRadius: 5
 
                     },
                     {
@@ -71,7 +93,7 @@
                         fill: false,
                         showLine: false, // only show point
                         pointStyle: 'triangle',
-                        pointRadius: 10
+                        pointRadius: 5
 
                     },
                     {
@@ -83,16 +105,7 @@
                         fill: false,
                         showLine: false, // only show point
                         pointStyle: 'triangle',
-                        pointRadius: 10
-
-                    },
-                    {
-                        label: 'CPU (%)',
-                        data: [],
-                        yAxisID: 'y-axis-percent',
-                        borderColor: 'back',
-                        backgroundColor: 'black',
-                        fill: false
+                        pointRadius: 5
                     }
                 ]
             },
@@ -112,7 +125,10 @@
                         ticks: {
                             beginAtZero: true,
                             bounds: 'data',
-                            position: 'left'
+                            position: 'left',
+                            callback: function(value, index, values) {
+                                return value + ' MB';
+                            }
                         }
                     },
                     {
@@ -123,16 +139,78 @@
                             min: 0,
                             max: 2
                         }
+                    }]
+                },
+                tooltips: {
+                    enabled: false
+                }
+            }
+        });
+
+        var performanceContext = document.getElementById("performance-canvas").getContext('2d');
+        var performanceChart = new Chart(performanceContext, {
+            type: 'line',
+            data: {
+                datasets: [
+                    {
+                        label: 'CPU',
+                        data: [],
+                        yAxisID: 'y-axis-percent',
+                        borderColor: 'red',
+                        backgroundColor: 'red',
+                        pointRadius: 0,
+                        fill: false
                     },
+                    {
+                        label: 'RPS',
+                        data: [],
+                        yAxisID: 'y-axis-rps',
+                        borderColor: 'green',
+                        backgroundColor: 'green',
+                        pointRadius: 0,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    xAxes: [{
+                        display: false,
+                        type: 'time',
+                        distribution: 'linear',
+                        ticks: {
+                            bounds: 'data'
+                        }
+                    }],
+                    yAxes: [
                     {
                         id: 'y-axis-percent',
                         display: true,
                         ticks: {
                             beginAtZero: true,
                             min: 0,
-                            max: 100
+                            max: 100,
+                            callback: function(value, index, values) {
+                                return value + '%';
+                            }
                         },
-                            position: 'right'
+                        gridLines: {
+                            display: false
+                        },
+                        position: 'left'
+                    },
+                    {
+                        id: 'y-axis-rps',
+                        display: true,
+                        ticks: {
+                            beginAtZero: true,
+                            bounds: 'data',
+                            callback: function(value, index, values) {
+                                return value + 'K';
+                            }
+                        },
+                        position: 'right'
                     }]
                 },
                 tooltips: {
@@ -145,16 +223,17 @@
         const collectUrl = "/api/collect";
 
         const maxEntries = 50;
-        var allocated = myChart.data.datasets[0].data;
-        var workingSet = myChart.data.datasets[1].data;
-        var privateBytes = myChart.data.datasets[2].data;
-        var generation0 = myChart.data.datasets[3].data;
-        var generation1 = myChart.data.datasets[4].data;
-        var generation2 = myChart.data.datasets[5].data;
-        var cpu = myChart.data.datasets[6].data;
+        var allocated = memoryChart.data.datasets[0].data;
+        var workingSet = memoryChart.data.datasets[1].data;
+        var generation0 = memoryChart.data.datasets[2].data;
+        var generation1 = memoryChart.data.datasets[3].data;
+        var generation2 = memoryChart.data.datasets[4].data;
         var previousGen0 = 0,
             previousGen1 = 0,
             previousGen2 = 0;
+
+        var cpu = performanceChart.data.datasets[0].data;
+        var rps = performanceChart.data.datasets[1].data;
 
         setInterval(function () {
             fetch(diagnosticsUrl)
@@ -165,8 +244,12 @@
                     var now = new Date();
                     allocated.push({ x: now, y: diagnostics.allocated / 1000000 });
                     workingSet.push({ x: now, y: diagnostics.workingSet / 1000000 });
-                    privateBytes.push({ x: now, y: diagnostics.privateBytes / 1000000 });
+
                     cpu.push({ x: now, y: diagnostics.cpu });
+                    rps.push({ x: now, y: diagnostics.rps / 1000 });
+
+                    performanceChart.data.datasets[0].label = `CPU (${Math.round(diagnostics.cpu)}%)`;
+                    performanceChart.data.datasets[1].label = `RPS (${Math.round(diagnostics.rps / 1000)}K)`;
 
                     if (previousGen2 < diagnostics.gen2) {
                         generation2.push({ x: now, y: 1 });
@@ -192,15 +275,16 @@
 
                         allocated.shift();
                         workingSet.shift();
-                        privateBytes.shift();
                         cpu.shift();
+                        rps.shift();
 
                         while (generation0.length > 0 && generation0[0].x < firstDate) generation0.shift();
                         while (generation1.length > 0 && generation1[0].x < firstDate) generation1.shift();
                         while (generation2.length > 0 && generation2[0].x < firstDate) generation2.shift();
                     }
 
-                    myChart.update();
+                    memoryChart.update();
+                    performanceChart.update();
                 });
         }, 300);
 

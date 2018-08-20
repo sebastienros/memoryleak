@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace MemoryLeak.Controllers
 {
@@ -15,6 +16,15 @@ namespace MemoryLeak.Controllers
         private static Process _process = Process.GetCurrentProcess();
         private static TimeSpan _oldCPUTime = TimeSpan.Zero;
         private static DateTime _lastMonitorTime = DateTime.UtcNow;
+        private static DateTime _lastRpsTime = DateTime.UtcNow;
+        private static double _cpu = 0, _rps = 0;
+        private static readonly double RefreshRate = TimeSpan.FromSeconds(1).TotalMilliseconds;
+        private static long _requests = 0;
+
+        public ApiController()
+        {
+            Interlocked.Increment(ref _requests);
+        }
 
         [HttpGet("collect")]
         public ActionResult GetCollect()
@@ -32,13 +42,25 @@ namespace MemoryLeak.Controllers
             var now = DateTime.UtcNow;
             _process.Refresh();
 
-            var newCPUTime = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? TimeSpan.Zero : _process.TotalProcessorTime;
-            var elapsedTime = now.Subtract(_lastMonitorTime).TotalMilliseconds;
-            var elapsedCPU = (newCPUTime - _oldCPUTime).TotalMilliseconds;
-            var cpu = elapsedCPU * 100 / Environment.ProcessorCount / elapsedTime;
+            var cpuElapsedTime = now.Subtract(_lastMonitorTime).TotalMilliseconds;
 
-            _lastMonitorTime = now;
-            _oldCPUTime = newCPUTime;
+            if (cpuElapsedTime > RefreshRate)
+            {
+                var newCPUTime = RuntimeInformation.IsOSPlatform(OSPlatform.OSX) ? TimeSpan.Zero : _process.TotalProcessorTime;
+                var elapsedCPU = (newCPUTime - _oldCPUTime).TotalMilliseconds;
+                _cpu = elapsedCPU * 100 / Environment.ProcessorCount / cpuElapsedTime;
+
+                _lastMonitorTime = now;
+                _oldCPUTime = newCPUTime;
+            }
+
+            var rpsElapsedTime = now.Subtract(_lastRpsTime).TotalMilliseconds;
+            if (rpsElapsedTime > RefreshRate)
+            {
+                _rps = _requests * 1000 / rpsElapsedTime;
+                Interlocked.Exchange(ref _requests, 0);
+                _lastRpsTime = now;
+            }
 
             var diagnostics = new
             {
@@ -64,7 +86,9 @@ namespace MemoryLeak.Controllers
                 // The number of generation 2 collections
                 Gen2 = GC.CollectionCount(2),
 
-                CPU = cpu
+                CPU = _cpu,
+
+                RPS = _rps
             };
 
             return new ObjectResult(diagnostics);
@@ -90,9 +114,10 @@ namespace MemoryLeak.Controllers
             return new String('x', 10 * 1024);
         }
 
-        private static string FormatMB(long bytes)
+        [HttpGet("loh/{size=85000}")]
+        public int GetLOH1(int size)
         {
-            return $"{((bytes / 1024d) / 1024d).ToString("N2")} MB";
+            return new byte[size].Length;
         }
     }
 }
