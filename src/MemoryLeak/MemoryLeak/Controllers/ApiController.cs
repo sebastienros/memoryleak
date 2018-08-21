@@ -1,10 +1,17 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.ObjectPool;
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Net.Http;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace MemoryLeak.Controllers
 {
@@ -20,6 +27,9 @@ namespace MemoryLeak.Controllers
         private static double _cpu = 0, _rps = 0;
         private static readonly double RefreshRate = TimeSpan.FromSeconds(1).TotalMilliseconds;
         private static long _requests = 0;
+        private static readonly string TempPath = Path.GetTempPath();
+        private static readonly HttpClient _httpClient = new HttpClient();
+        private static readonly ObjectPool<StringBuilder> _stringBuilders = new DefaultObjectPool<StringBuilder>(new DefaultPooledObjectPolicy<StringBuilder>());
 
         public ApiController()
         {
@@ -94,12 +104,6 @@ namespace MemoryLeak.Controllers
             return new ObjectResult(diagnostics);
         }
 
-        [HttpGet("array")]
-        public ActionResult<IEnumerable<string>> GetArray()
-        {
-            return new string[] { "value1", "value2" };
-        }
-
         [HttpGet("staticstring")]
         public ActionResult<string> GetStaticString()
         {
@@ -115,9 +119,75 @@ namespace MemoryLeak.Controllers
         }
 
         [HttpGet("loh/{size=85000}")]
-        public int GetLOH1(int size)
+        public int GetLOH(int size)
         {
             return new byte[size].Length;
         }
+
+        [HttpGet("fileprovider")]
+        public void GetFileProvider()
+        {
+            var fp = new PhysicalFileProvider(TempPath);
+            fp.Watch("*.*");
+        }
+
+        [HttpGet("httpclient1")]
+        public async Task<int> GetHttpClient1(string url)
+        {
+            using (var httpClient = new HttpClient())
+            {
+                var result = await httpClient.GetAsync(url);
+                return (int)result.StatusCode;
+            }
+        }
+
+        [HttpGet("httpclient2")]
+        public async Task<int> GetHttpClient2(string url)
+        {
+            var result = await _httpClient.GetAsync(url);
+            return (int)result.StatusCode;
+        }
+
+        [HttpGet("array/{size}")]
+        public byte[] GetArray(int size)
+        {
+            var array = new byte[size];
+
+            var random = new Random();
+            random.NextBytes(array);
+
+            return array;
+        }
+
+        private static ArrayPool<byte> _arrayPool = ArrayPool<byte>.Create();
+
+        private class PooledArray : IDisposable
+        {
+            public byte[] Array { get; private set; }
+
+            public PooledArray(int size)
+            {
+                Array = _arrayPool.Rent(size);
+            }
+
+            public void Dispose()
+            {
+                _arrayPool.Return(Array);
+            }
+        }
+
+        [HttpGet("pooledarray/{size}")]
+        public byte[] GetPooledArray(int size)
+        {
+            var pooledArray = new PooledArray(size);
+
+            var random = new Random();
+            random.NextBytes(pooledArray.Array);
+
+            HttpContext.Response.RegisterForDispose(pooledArray);
+
+            return pooledArray.Array;
+        }
+
     }
 }

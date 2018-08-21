@@ -42,9 +42,6 @@
         <div class="chart-container">
             <canvas id="memory-canvas"></canvas>
         </div>
-        <div class="chart-container">
-            <canvas id="performance-canvas"></canvas>
-        </div>
 	</div>
 
     <script>
@@ -106,6 +103,14 @@
                         showLine: false, // only show point
                         pointStyle: 'triangle',
                         pointRadius: 5
+                    },
+                    {
+                        label: 'CPU',
+                        data: []
+                    },
+                    {
+                        label: 'RPS',
+                        data: []
                     }
                 ]
             },
@@ -147,78 +152,6 @@
             }
         });
 
-        var performanceContext = document.getElementById("performance-canvas").getContext('2d');
-        var performanceChart = new Chart(performanceContext, {
-            type: 'line',
-            data: {
-                datasets: [
-                    {
-                        label: 'CPU',
-                        data: [],
-                        yAxisID: 'y-axis-percent',
-                        borderColor: 'red',
-                        backgroundColor: 'red',
-                        pointRadius: 0,
-                        fill: false
-                    },
-                    {
-                        label: 'RPS',
-                        data: [],
-                        yAxisID: 'y-axis-rps',
-                        borderColor: 'green',
-                        backgroundColor: 'green',
-                        pointRadius: 0,
-                        fill: false
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    xAxes: [{
-                        display: false,
-                        type: 'time',
-                        distribution: 'linear',
-                        ticks: {
-                            bounds: 'data'
-                        }
-                    }],
-                    yAxes: [
-                    {
-                        id: 'y-axis-percent',
-                        display: true,
-                        ticks: {
-                            beginAtZero: true,
-                            min: 0,
-                            max: 100,
-                            callback: function(value, index, values) {
-                                return value + '%';
-                            }
-                        },
-                        gridLines: {
-                            display: false
-                        },
-                        position: 'left'
-                    },
-                    {
-                        id: 'y-axis-rps',
-                        display: true,
-                        ticks: {
-                            beginAtZero: true,
-                            bounds: 'data',
-                            callback: function(value, index, values) {
-                                return value + 'K';
-                            }
-                        },
-                        position: 'right'
-                    }]
-                },
-                tooltips: {
-                    enabled: false
-                }
-            }
-        });
-
         const diagnosticsUrl = "/api/diagnostics";
         const collectUrl = "/api/collect";
 
@@ -232,9 +165,6 @@
             previousGen1 = 0,
             previousGen2 = 0;
 
-        var cpu = performanceChart.data.datasets[0].data;
-        var rps = performanceChart.data.datasets[1].data;
-
         setInterval(function () {
             fetch(diagnosticsUrl)
                 .then(response => {
@@ -245,11 +175,8 @@
                     allocated.push({ x: now, y: diagnostics.allocated / 1000000 });
                     workingSet.push({ x: now, y: diagnostics.workingSet / 1000000 });
 
-                    cpu.push({ x: now, y: diagnostics.cpu });
-                    rps.push({ x: now, y: diagnostics.rps / 1000 });
-
-                    performanceChart.data.datasets[0].label = `CPU (${Math.round(diagnostics.cpu)}%)`;
-                    performanceChart.data.datasets[1].label = `RPS (${Math.round(diagnostics.rps / 1000)}K)`;
+                    memoryChart.data.datasets[5].label = `CPU (${Math.round(diagnostics.cpu)}%)`;
+                    memoryChart.data.datasets[6].label = `RPS (${Math.round(diagnostics.rps / 1000)}K)`;
 
                     if (previousGen2 < diagnostics.gen2) {
                         generation2.push({ x: now, y: 1 });
@@ -275,8 +202,6 @@
 
                         allocated.shift();
                         workingSet.shift();
-                        cpu.shift();
-                        rps.shift();
 
                         while (generation0.length > 0 && generation0[0].x < firstDate) generation0.shift();
                         while (generation1.length > 0 && generation1[0].x < firstDate) generation1.shift();
@@ -284,7 +209,6 @@
                     }
 
                     memoryChart.update();
-                    performanceChart.update();
                 });
         }, 300);
 
