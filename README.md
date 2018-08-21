@@ -2,19 +2,19 @@
 
 Memory management is complex, even in a managed framework like .NET. Analyzing and understanding memory issues can be challenging.
 
-Some time ago an issue was created on the ASP.NET GitHub repository about The Garbage Collector (GC) "not collecting the garbage", which would make it quite useless. The symptoms, as described by the original creator, were that the memory would keep growing request after request, letting them think that the issue was in the GC. Here is the link to the GitHub issue: https://github.com/aspnet/Home/issues/1976
+A while ago, a user [reported an issue](https://github.com/aspnet/Home/issues/1976) in the ASP.NET Core GitHub Home repository stating that The Garbage Collector (GC) was "not collecting the garbage", which would make it quite useless. The symptoms, as described by the original creator, were that the memory would keep growing request after request, letting them think that the issue was in the GC.
 
-We tried to get more information about this issue, to understand if the problem was in the GC or in the application itself, but what we got instead was a wave of other contributors posting reports of such behavior: the memory keeps growing. The thread grew to the extent that we decided to split it into multiple issues and follow-up on them independantly. In the end most of the issues can be explained by some missunderstanding about how memory consumption works in .NET, but also issues in how it was measured.
+We tried to get more information about this issue, to understand if the problem was in the GC or in the application itself. What we got instead was a wave of other contributors posting reports of such behavior: the memory keeps growing. The thread grew to the extent that we decided to split it into multiple issues and follow-up on them independently. In the end most of the issues can be explained by some misunderstanding about how memory consumption works in .NET, but also issues in how it was measured.
 
-To help .NET developers better understand their applications, we need understand how memory management works in ASP.NET Core, how to detect memory related issues, and how to prevent common mistakes.
+To help .NET developers better understand their applications, we need to understand how memory management works in ASP.NET Core, how to detect memory related issues, and how to prevent common mistakes.
 
 ## How Garbage Collection works in ASP.NET Core
 
-The GC allocates a contiguous range of memory, the heap, and objects placed in it are categorized in with a generation number (0, 1, and 2). The lower the generation number, the more frequent GC will try to release the memory taken by the objects categorized with it.
+The GC allocates a contiguous range of memory, the heap. Objects placed in it are categorized into one of 3 generations - 0, 1, or 2. The generation determines the frequency with which the GC attempts to release memory on a managed object that are no longer referenced by the application - lower numbers indiciate higher frequency.
 
 Objects are moved from one generation to another based on their lifetime. As objects live longer they will be moved in a higher generation, and assessed for collection less often. Short term lived objects like the ones that are referenced during the life of a web request will always remain in generation 0. Application level singletons however will most probably move to generation 1 and eventually 2.
 
-The first thing that affects how ASP.NET applications behave in terms of memory consumption is that the GC will allocate some memory even if there are no objects to put in, and this amount is greater as the available memory on the system is big. This is done for performance reasons as allocating memory is expensive. It also means that seeing an ASP.NET Core process take 400MB of memory at startup is expected and a normal behavior.
+The first thing that affects how ASP.NET Core applications behave in terms of memory consumption is that the GC will allocate some memory even if there are no objects to put in. This amount is proportionl to the available memory on the system. This is done for performance reasons as allocating memory is expensive. It also means that seeing an ASP.NET Core process take 400MB of emory at startup shouldn't be suprising.
 
 > Important: An ASP.NET Core process will preemptively allocate a significant amount of memory at startup.
 
