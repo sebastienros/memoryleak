@@ -2,7 +2,7 @@
 
 Memory management is complex, even in a managed framework like .NET. Analyzing and understanding memory issues can be challenging.
 
-A while ago, a user [reported an issue](https://github.com/aspnet/Home/issues/1976) in the ASP.NET Core GitHub Home repository stating that The Garbage Collector (GC) was "not collecting the garbage", which would make it quite useless. The symptoms, as described by the original creator, were that the memory would keep growing request after request, letting them think that the issue was in the GC.
+Recently a user [reported an issue](https://github.com/aspnet/Home/issues/1976) in the ASP.NET Core GitHub Home repository stating that The Garbage Collector (GC) was "not collecting the garbage", which would make it quite useless. The symptoms, as described by the original creator, were that the memory would keep growing request after request, letting them think that the issue was in the GC.
 
 We tried to get more information about this issue, to understand if the problem was in the GC or in the application itself. What we got instead was a wave of other contributors posting reports of such behavior: the memory keeps growing. The thread grew to the extent that we decided to split it into multiple issues and follow-up on them independently. In the end most of the issues can be explained by some misunderstanding about how memory consumption works in .NET, but also issues in how it was measured.
 
