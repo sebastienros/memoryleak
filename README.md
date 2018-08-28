@@ -121,7 +121,7 @@ On a typical web server environment the CPU resource is more critical than memor
 
 #### Eternal references
 
-Even though the garbage collector does a good job at preventing memory to grow, there are some scenarios where it can't release the memory, and then will induce memory leaks.
+Even though the garbage collector does a good job at preventing memory to grow, if objects are simply held live by the user code GC cannot release them. If the amount of memory used by such objects keeps increasing, it’s called a managed memory leak.
 
 The following API creates a 10KB `String` instance and returns it to the client. The difference with the first example is that this instance is referenced by a static member, which means it will never available for collection.
 
@@ -137,7 +137,7 @@ public ActionResult<string> GetStaticString()
 }
 ```
 
-This is a typical user code memory leak as the memory will keep increasing without any way for the GC to free it until there is no more available memory and the application crashes.
+This is a typical user code memory leak as the memory will keep increasing until the process crashes with an `OutOfMemory` exception.
 
 ![](images/eternal.png)
 
@@ -149,7 +149,7 @@ Some scenarios require to keep object references indefinitely, in which case a w
 
 Memory leaks don't have to be caused by eternal references to managed objects. Some .NET objects rely on native memory to function. This memory cannot be collected by the GC and the .NET objects need free it using native code.
 
-Fortunately .NET provides the `IDisposable` interface to let developers release this native memory proactively. And even if `Dispose()` is not called in time, classes usually do it automatically when the finalizer is called by the garbage collector... unless the class is not correctly implemented.
+Fortunately .NET provides the `IDisposable` interface to let developers release this native memory proactively. And even if `Dispose()` is not called in time, classes usually do it automatically when the finalizer runs... unless the class is not correctly implemented.
 
 Let's take a look at this code for instance:
 
@@ -200,7 +200,7 @@ The working set is about the same on both scenarios, at a steady 450 MB. But wha
 
 This shows that very large objects should be avoided. As an example the __Response Caching__ middleware in ASP.NET Core split the cache entries in block of a size lower than 85,000 bytes to handle this scenario.
 
-Here are some links to the specific implementation handling this nehavior 
+Here are some links to the specific implementation handling this behavior 
 - https://github.com/aspnet/ResponseCaching/blob/c1cb7576a0b86e32aec990c22df29c780af29ca5/src/Microsoft.AspNetCore.ResponseCaching/Streams/StreamUtilities.cs#L16
 - https://github.com/aspnet/ResponseCaching/blob/c1cb7576a0b86e32aec990c22df29c780af29ca5/src/Microsoft.AspNetCore.ResponseCaching/Internal/MemoryResponseCache.cs#L55
 
@@ -264,7 +264,7 @@ A similar pattern is to use object pooling. The idea is that if an object is exp
 
 The Nuget package `Microsoft.Extensions.ObjectPool` contains classes that help to manage such pools.
 
-To show how beneficial it can be, let use an API endpoint that instanciates a `byte` buffer that is filled with random numbers on each request:
+To show how beneficial it can be, let use an API endpoint that instantiates a `byte` buffer that is filled with random numbers on each request:
 
 ```csharp
         [HttpGet("array/{size}")]
