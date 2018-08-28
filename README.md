@@ -4,25 +4,26 @@ Memory management is complex, even in a managed framework like .NET. Analyzing a
 
 Recently a user [reported an issue](https://github.com/aspnet/Home/issues/1976) in the ASP.NET Core GitHub Home repository stating that The Garbage Collector (GC) was "not collecting the garbage", which would make it quite useless. The symptoms, as described by the original creator, were that the memory would keep growing request after request, letting them think that the issue was in the GC.
 
-We tried to get more information about this issue, to understand if the problem was in the GC or in the application itself, but what we got instead was a wave of other contributors posting reports of such behavior: the memory keeps growing. The thread grew to the extent that we decided to split it into multiple issues and follow-up on them independantly. In the end most of the issues can be explained by some missunderstanding about how memory consumption works in .NET, but also issues in how it was measured.
+We tried to get more information about this issue, to understand if the problem was in the GC or in the application itself, but what we got instead was a wave of other contributors posting reports of such behavior: the memory keeps growing. The thread grew to the extent that we decided to split it into multiple issues and follow-up on them independently. In the end most of the issues can be explained by some misunderstanding about how memory consumption works in .NET, but also issues in how it was measured.
 
 To help .NET developers better understand their applications, we need to understand how memory management works in ASP.NET Core, how to detect memory related issues, and how to prevent common mistakes.
 
 ## How Garbage Collection works in ASP.NET Core
 
-The GC allocates a contiguous range of memory, the heap. Objects placed in it are categorized into one of 3 generations - 0, 1, or 2. The generation determines the frequency with which the GC attempts to release memory on a managed object that are no longer referenced by the application - lower numbers indiciate higher frequency.
+The GC allocates heap segments where each segment is a contiguous range of memory. Objects placed in it are categorized into one of 3 generations - 0, 1, or 2. The generation determines the frequency with which the GC attempts to release memory on a managed object that are no longer referenced by the application - lower numbers imply higher frequency.
 
 Objects are moved from one generation to another based on their lifetime. As objects live longer they will be moved in a higher generation, and assessed for collection less often. Short term lived objects like the ones that are referenced during the life of a web request will always remain in generation 0. Application level singletons however will most probably move to generation 1 and eventually 2.
 
-The first thing that affects how ASP.NET Core applications behave in terms of memory consumption is that the GC will allocate some memory even if there are no objects to put in. This amount is proportional to the available memory on the system. This is done for performance reasons as allocating memory is expensive. It also means that seeing an ASP.NET Core process take 400MB of memory at startup shouldn't be suprising.
+When an ASP.NET Core applications has started the GC will reserve some memory for the initial heap segments and commit a small portion of it when the runtime is loaded. This is done for performance reasons so a heap segment can be in contiguous memory.
 
 > Important: An ASP.NET Core process will preemptively allocate a significant amount of memory at startup.
 
 ### Calling the GC explicitly 
 
-Objects in generation 2 are only collected when the amount of reserved memory is no more sufficient to allow new objects to be allocated on the heap, or when the GC is invoked programmatically by the application. To manually invoke the GC execute `GC.Collect()`. This will trigger a generation 2 collection, and indirectly all lower generations. This is usually only used when investigating memory leaks, to be sure the GC has removed all dangling objects from memory before we can measure it.
+The GC is usually 
+To manually invoke the GC execute `GC.Collect()`. This will trigger a generation 2 collection and all lower generations. This is usually only used when investigating memory leaks, to be sure the GC has removed all dangling objects from memory before we can measure it.
 
->Note: You should never call `GC.Collect()` directly unless for investigating purposes.
+> Note: An application should not have to call `GC.Collect()` directly.
 
 ## Analyzing the memory usage of an application
 
@@ -33,7 +34,7 @@ Dedicated tools can help analyzing memory usage:
 
 However for the sake of simplicity this article won't use any of these but instead render some in-app live charts.
 
-For in-depth anlyzis please read these article which demonstrate how to use Visual Studio .NET:
+For in-depth anlysis please read these articles which demonstrate how to use Visual Studio .NET:
 
 [Analyze memory usage without the Visual Studio debugger](https://docs.microsoft.com/en-us/visualstudio/profiling/memory-usage-without-debugging2)
 
@@ -42,7 +43,7 @@ For in-depth anlyzis please read these article which demonstrate how to use Visu
 
 ### Detecting memory issues
 
-Most of the time the __Task Manager__ is used to get an idea of how much memory an ASP.NET application is using. This value actually represents the amount of memory that was allocated by the GC, not the amount that is actually used by the application's living objects.
+Most of the time the memory measure displayed in the __Task Manager__ is used to get an idea of how much memory an ASP.NET application is using. This value represents the amount of memory that is used by the ASP.NET process which includes the application's living objects and other memory consumers such as native memory usage.
 
 Seeing this value increasing indefinitely is a clue that there is a memory leak somewhere in the code but it doesn't explain what it is. The next sections will introduce you to specific memory usage patterns and explain them.
 
@@ -50,14 +51,14 @@ Seeing this value increasing indefinitely is a clue that there is a memory leak 
 
 The full source code is available on GitHub at https://github.com/sebastienros/memoryleak
 
-Once it has started the application displays some memory and GC statictics and the page refreshes by itself every second. Specific API endpoints execute specific memory allocation patterns. 
+Once it has started the application displays some memory and GC statistics and the page refreshes by itself every second. Specific API endpoints execute specific memory allocation patterns. 
 
 To test this application, simply start it. You can see that the allocated memory keeps increasing, because displaying these statistics is allocating custom objects for instance. The GC eventually runs and collects them.
 
 This pages shows a graphs including allocated memory and GC collections. The legend also displays the CPU usage and throughput in requests per second.
 
 The chart displays two values for the memory usage:
-- Allocated: the amount of memory allocated on the managed heap since last GC collection
+- Allocated: the amount of memory occupied by managed objects
 - Working Set: the total physical memory (RAM) used by the process (as displayed in the Task Manager)
 
 #### Transient objects
@@ -80,11 +81,11 @@ The following graph is generated with a relatively small load of 5K RPS in order
 
 In this example, the GC collect the generation 0 instances about every two seconds once the allocations reach a threshold of a little above 300 MB. The working set is stable at around 500 MB, and the CPU usage is low.
 
-What this graph shows is how on a relatively low requests throughput the memory consumption is very stable to an amount that has been chosen by the GC. 
+What this graph shows is how on a relatively low requests throughput the memory consumption is very stable to an amount that has been chosen by the GC.
 
-The following chart is taken once the load is increased to the max througput that can be handled by the machine.
+The following chart is taken once the load is increased to the max throughput that can be handled by the machine.
 
-![](images/bigstring2.PNG)
+![](images/bigstring2.png)
 
 There are some notable points:
 - The collections happen much more frequently, as in many times per second
@@ -100,12 +101,12 @@ The .NET Garbage Collector can work in two different modes, namely the __Worksta
 To visualize the actual impact of these modes, we can force the Workstation GC on our web application by using the `ServerGarbageCollection` parameter in the project file (`.csproj`). This will require the application to be rebuilt.
 
 ```xml
-    <ServerGarbageCollection>true</ServerGarbageCollection>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
 ```
 
 It can also be done by setting the `System.GC.Server` property in the `runtimeconfig.json` file of the published application.
 
-Here is the memory profile under a 5K RPS.
+Here is the memory profile under a 5K RPS for the Workstation GC.
 
 ![](images/workstation.png)
 
@@ -321,7 +322,7 @@ The same load as the non-pooled version result in the following profile.
 
 ![](images/pooledarray.png)
 
-You can see that the main difference is in the rate of allocations, and as a consequence much fewer generation 0 collections.
+You can see that the main difference is allocated bytes, and as a consequence much fewer generation 0 collections.
 
 ## Conclusion
 
@@ -331,7 +332,7 @@ Applying the practices explained in this article should prevent applications fro
 
 ### Reference Articles
 
-To go further in the understanding of how memory managment works in .NET, here are some recommended articles.
+To go further in the understanding of how memory management works in .NET, here are some recommended articles.
 
 [Garbage Collection](https://docs.microsoft.com/en-us/dotnet/standard/garbage-collection/)
 

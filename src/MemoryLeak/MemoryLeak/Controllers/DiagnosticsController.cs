@@ -58,7 +58,7 @@ namespace MemoryLeak.Controllers
             {
                 PID = _process.Id,
 
-                // The allocated managed objects in the GC segments.
+                // The memory occupied by objects.
                 Allocated = GC.GetTotalMemory(false),
 
                 // The working set includes both shared and private data. The shared data includes the pages that contain all the 
