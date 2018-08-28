@@ -208,9 +208,9 @@ Here are some links to the specific implementation handling this behavior
 
 Not specifically a memory leak issue, more of a resource leak one, but this has been seen enough times in user code that it deserved to be mentioned here.
 
-Seasoned .NET developer are used to disposing objects that implement `IDisposable`. After all not doing so might result is leaked memory (see previous examples), or other native resources like database connections and file handlers.
+Seasoned .NET developer are used to disposing objects that implement `IDisposable`. Not doing so might result is leaked memory (see previous examples), or other native resources like database connections and file handlers.
 
-But `HttpClient`, even though it implements `IDisposable` should not be used then disposed on every invocation, but reused instead.
+But `HttpClient`, even though it implements `IDisposable`, should not be used then disposed on every invocation but reused instead.
 
 Here is an API endpoint that creates and disposes a new instance on every request.
 
@@ -250,7 +250,7 @@ public async Task<int> GetHttpClient2(string url)
 }
 ```
 
-This instance will eventually get released when the application closes.
+This instance will eventually get released when the application stops.
 
 This shows that it's not because a resource is disposable that it needs to be disposed right away.
 
@@ -258,13 +258,13 @@ This shows that it's not because a resource is disposable that it needs to be di
 
 #### Object pooling
 
-In the previous example we saw how the `HttpClient` instance can be made a static and reused by all requests to prevent resource exhaustion.
+In the previous example we saw how the `HttpClient` instance can be made static and reused by all requests to prevent resource exhaustion.
 
 A similar pattern is to use object pooling. The idea is that if an object is expensive to create, then we should reuse its instances to prevent resource allocations. A pool is a collection of pre-initialized objects that can be reserved and released across threads. Pools can define allocation rules like hard limits, predefined sizes, or growth rate.
 
 The Nuget package `Microsoft.Extensions.ObjectPool` contains classes that help to manage such pools.
 
-To show how beneficial it can be, let use an API endpoint that instantiates a `byte` buffer that is filled with random numbers on each request:
+To show how beneficial it can be, let's use an API endpoint that instantiates a `byte` buffer that is filled with random numbers on each request:
 
 ```csharp
         [HttpGet("array/{size}")]
@@ -318,7 +318,7 @@ public byte[] GetPooledArray(int size)
 }
 ```
 
-The same load as the non-pooled version result in the following profile.
+Applying the same load as the non-pooled version results in the following chart:
 
 ![](images/pooledarray.png)
 
