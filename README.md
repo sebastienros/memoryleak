@@ -14,13 +14,12 @@ The GC allocates heap segments where each segment is a contiguous range of memor
 
 Objects are moved from one generation to another based on their lifetime. As objects live longer they will be moved in a higher generation, and assessed for collection less often. Short term lived objects like the ones that are referenced during the life of a web request will always remain in generation 0. Application level singletons however will most probably move to generation 1 and eventually 2.
 
-When an ASP.NET Core applications has started the GC will reserve some memory for the initial heap segments and commit a small portion of it when the runtime is loaded. This is done for performance reasons so a heap segment can be in contiguous memory.
+When an ASP.NET Core applications has started, the GC will reserve some memory for the initial heap segments and commit a small portion of it when the runtime is loaded. This is done for performance reasons so a heap segment can be in contiguous memory.
 
 > Important: An ASP.NET Core process will preemptively allocate a significant amount of memory at startup.
 
 ### Calling the GC explicitly 
 
-The GC is usually 
 To manually invoke the GC execute `GC.Collect()`. This will trigger a generation 2 collection and all lower generations. This is usually only used when investigating memory leaks, to be sure the GC has removed all dangling objects from memory before we can measure it.
 
 > Note: An application should not have to call `GC.Collect()` directly.
@@ -147,7 +146,7 @@ Some scenarios require to keep object references indefinitely, in which case a w
 
 #### Native memory
 
-Memory leaks don't have to be caused by eternal references to managed objects. Some .NET objects rely on native memory to function. This memory cannot be collected by the GC and the .NET objects need free it using native code.
+Memory leaks don't have to be caused by eternal references to managed objects. Some .NET objects rely on native memory to function. This memory cannot be collected by the GC and the .NET objects need to free it using native code.
 
 Fortunately .NET provides the `IDisposable` interface to let developers release this native memory proactively. And even if `Dispose()` is not called in time, classes usually do it automatically when the finalizer runs... unless the class is not correctly implemented.
 

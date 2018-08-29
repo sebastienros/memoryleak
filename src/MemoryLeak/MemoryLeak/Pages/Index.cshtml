@@ -13,24 +13,26 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.min.js"></script>
 
     <style>
-	    canvas{
-		    -moz-user-select: none;
-		    -webkit-user-select: none;
-		    -ms-user-select: none;
-	    }
-	    .chart-container {
-		    width: 800px;
-		    margin-left: 40px;
-		    margin-right: 40px;
-		    margin-bottom: 40px;
-	    }
-	    .container {
-		    display: flex;
-		    flex-direction: row;
-		    flex-wrap: wrap;
-		    justify-content: center;
-	    }
-	</style>
+        canvas {
+            -moz-user-select: none;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+        }
+
+        .chart-container {
+            width: 800px;
+            margin-left: 40px;
+            margin-right: 40px;
+            margin-bottom: 40px;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+    </style>
 
 </head>
 <body>
@@ -42,7 +44,7 @@
         <div class="chart-container">
             <canvas id="memory-canvas"></canvas>
         </div>
-	</div>
+    </div>
 
     <script>
         Chart.defaults.global.defaultFontFamily = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
@@ -118,11 +120,19 @@
                 responsive: true,
                 scales: {
                     xAxes: [{
-                        display: false,
                         type: 'time',
                         distribution: 'linear',
+                        time: {
+                            unit: 'second',
+                            displayFormats: {
+                                second: 'mm:ss'
+                            }
+                        },
+                        bounds: 'ticks',
                         ticks: {
-                            bounds: 'data'
+                            callback: function (value, index, values) {
+                                return index;
+                            }
                         }
                     }],
                     yAxes: [{
@@ -131,7 +141,7 @@
                             beginAtZero: true,
                             bounds: 'data',
                             position: 'left',
-                            callback: function(value, index, values) {
+                            callback: function (value, index, values) {
                                 return value + ' MB';
                             }
                         }
@@ -156,6 +166,7 @@
         const collectUrl = "/api/collect";
 
         const maxEntries = 50;
+        const interval = 300;
         var allocated = memoryChart.data.datasets[0].data;
         var workingSet = memoryChart.data.datasets[1].data;
         var generation0 = memoryChart.data.datasets[2].data;
@@ -210,7 +221,7 @@
 
                     memoryChart.update();
                 });
-        }, 300);
+        }, interval);
 
         document.getElementById("collect-btn").addEventListener("click", function () { fetch(collectUrl); });
 
