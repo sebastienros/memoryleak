@@ -1,6 +1,5 @@
-﻿using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
-using System.Runtime;
+using Microsoft.Extensions.Hosting;
 
 namespace MemoryLeak
 {
@@ -8,16 +7,14 @@ namespace MemoryLeak
     {
         public static void Main(string[] args)
         {
-            CreateWebHostBuilder(args).Build().Run();
+            CreateHostBuilder(args).Build().Run();
         }
 
-        public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
-            WebHost.CreateDefaultBuilder(args)
-                .UseStartup<Startup>();
-    }
-
-    public static class GlobalGC
-    {
-        public static string GC = (GCSettings.IsServerGC == true) ? "Server" : "Workstation";
+        public static IHostBuilder CreateHostBuilder(string[] args) =>
+            Host.CreateDefaultBuilder(args)
+                .ConfigureWebHostDefaults(webBuilder =>
+                {
+                    webBuilder.UseStartup<Startup>();
+                });
     }
 }
