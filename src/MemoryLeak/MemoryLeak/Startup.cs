@@ -1,8 +1,6 @@
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+using System.Reflection;
+using MemoryLeak.DataModels;
+using MemoryLeak.Repositories;
 
 namespace MemoryLeak
 {
@@ -19,6 +17,28 @@ namespace MemoryLeak
         {
             services.AddRazorPages();
             services.AddControllers();
+
+            services.AddEndpointsApiExplorer();
+            services.AddSwaggerGen(options =>
+                {
+                    // using System.Reflection;
+                    var xmlFilename = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                    options.IncludeXmlComments(Path.Combine(AppContext.BaseDirectory, xmlFilename));
+                });
+            //services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+            services.AddHttpContextAccessor();
+            services.AddScoped<SampleRepo>();
+            services.AddDbContext<MLTLVL2Context>();
+
+            services.AddCors(options =>
+            {
+                options.AddDefaultPolicy(builder =>
+                builder.WithOrigins("https://localhost:7098")
+                    .AllowAnyMethod()
+                    .AllowAnyHeader()
+                    .AllowAnyOrigin());
+
+            });
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -45,6 +65,10 @@ namespace MemoryLeak
                 endpoints.MapRazorPages();
                 endpoints.MapControllers();
             });
+
+            app.UseCors();
+            app.UseSwagger();
+            app.UseSwaggerUI();
         }
     }
 }
