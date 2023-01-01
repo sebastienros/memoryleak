@@ -54,8 +54,9 @@ namespace MemoryLeak.Controllers
                 var dto = repo.GetLayers(ToastID);
                 return Ok(dto);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Console.WriteLine(ex);
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }

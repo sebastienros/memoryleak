@@ -17,7 +17,7 @@ namespace MemoryLeak.DataModels
         {
             //For when tables don't have primary Keys
             builder.Entity<EAF_BKT_YARD>().HasKey(t => new { t.C_STN_ID, t.C_YARD_ID, t.C_PILE_NUM });
-            builder.Entity<EAF_BKT_ASSGN_MAT>().HasKey(t => new { t.C_Toast });
+            builder.Entity<EAF_BKT_ASSGN_MAT>().HasKey(t => new { t.C_TRUCK });
         }
 
         #region Entities

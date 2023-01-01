@@ -17,7 +17,7 @@ namespace MemoryLeak.Repositories
         {
             try
             {
-                List<EAF_BKT_ASSGN_MAT> result = ctx.EAF_BKT_ASSGN_MAT.AsNoTracking().Where(x => x.C_Toast == Toastid).ToList();
+                List<EAF_BKT_ASSGN_MAT> result = ctx.EAF_BKT_ASSGN_MAT.AsNoTracking().Where(x => x.C_TRUCK == Toastid).ToList();
                 return result;
             }
             catch (Exception)
