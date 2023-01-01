@@ -37,7 +37,8 @@
 </head>
 <body>
     <p>
-        <button id="collect-btn" type="button" style="visibility:hidden">Collect</button>
+        <button id="collect-btn" type="button" style="visibility:visible">Collect</button>
+        @* <button id="collect-btn" type="button" style="visibility:hidden">Collect</button> *@
     </p>
 
     <div class="container">
@@ -47,6 +48,9 @@
     </div>
 
     <p>  GC = @MemoryLeak.GlobalGC.GC</p>
+    <p>  gen0 = <span id="gen0">@MemoryLeak.GlobalGC.Gen0</span></p>
+    <p>  gen1 = <span id="gen1">@MemoryLeak.GlobalGC.Gen1</span></p>
+    <p>  gen2 = <span id="gen2">@MemoryLeak.GlobalGC.Gen2</span></p>
 
     <script>
         Chart.defaults.global.defaultFontFamily = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
@@ -222,6 +226,9 @@
                     }
 
                     memoryChart.update();
+                    document.getElementById("gen0").innerText = diagnostics.gen0;
+                    document.getElementById("gen1").innerText = diagnostics.gen1;
+                    document.getElementById("gen2").innerText = diagnostics.gen2;
                 });
         }, interval);
 
