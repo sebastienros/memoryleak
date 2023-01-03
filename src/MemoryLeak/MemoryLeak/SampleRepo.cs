@@ -5,19 +5,19 @@ namespace MemoryLeak.Repositories
 {
     public class SampleRepo
     {
-        private readonly MLTLVL2Context ctx;
+        private readonly MyDbContext ctx;
 
-        public  SampleRepo(MLTLVL2Context ctx)
-            {
+        public SampleRepo(MyDbContext ctx)
+        {
             this.ctx = ctx;
         }
 
         //Every 2 seconds
-        public List<EAF_BKT_ASSGN_MAT> GetLayers(string Toastid)
+        public List<T_TOAST> GetLayers(string id)
         {
             try
             {
-                List<EAF_BKT_ASSGN_MAT> result = ctx.EAF_BKT_ASSGN_MAT.AsNoTracking().Where(x => x.C_TRUCK == Toastid).ToList();
+                List<T_TOAST> result = ctx.T_TOAST.AsNoTracking().Where(x => x.C_ID == id).ToList();
                 return result;
             }
             catch (Exception)

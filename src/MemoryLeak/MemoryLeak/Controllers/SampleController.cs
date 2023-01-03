@@ -56,7 +56,7 @@ namespace MemoryLeak.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex);
+                await Console.Error.WriteLineAsync(ex.ToString());
                 return StatusCode(StatusCodes.Status500InternalServerError);
             }
         }

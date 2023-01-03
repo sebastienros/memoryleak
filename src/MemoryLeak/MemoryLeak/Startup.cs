@@ -28,7 +28,7 @@ namespace MemoryLeak
             //services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddHttpContextAccessor();
             services.AddScoped<SampleRepo>();
-            services.AddDbContext<MLTLVL2Context>();
+            services.AddDbContext<MyDbContext>();
 
             services.AddCors(options =>
             {

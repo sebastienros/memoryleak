@@ -2,10 +2,10 @@
 
 namespace MemoryLeak.DataModels
 {
-    public class EAF_BKT_ASSGN_MAT
+    public class T_TOAST
     {
         [Key]
-        public string C_TRUCK { get; internal set; }
+        public string C_ID { get; internal set; }
         public string C_MAT { get; internal set; }
         public string C_MAT_DESC { get; internal set; }
     }

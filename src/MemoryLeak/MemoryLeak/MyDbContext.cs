@@ -3,8 +3,13 @@
 
 namespace MemoryLeak.DataModels
 {
-    public partial class MLTLVL2Context : DbContext
+    public partial class MyDbContext : DbContext
     {
+        public MyDbContext(DbContextOptions<MyDbContext> options) : base(options)
+        {
+            this.Database.EnsureCreated();
+        }
+
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -16,14 +21,12 @@ namespace MemoryLeak.DataModels
         protected override void OnModelCreating(ModelBuilder builder)
         {
             //For when tables don't have primary Keys
-            builder.Entity<EAF_BKT_YARD>().HasKey(t => new { t.C_STN_ID, t.C_YARD_ID, t.C_PILE_NUM });
-            builder.Entity<EAF_BKT_ASSGN_MAT>().HasKey(t => new { t.C_TRUCK });
+            builder.Entity<T_TOAST>().HasKey(t => new { t.C_ID });
         }
 
         #region Entities
 
-        public DbSet<EAF_BKT_ASSGN_MAT>? EAF_BKT_ASSGN_MAT { get; set; }
-        public DbSet<EAF_BKT_YARD>? EAF_BKT_YARD { get; set; }
+        public DbSet<T_TOAST>? T_TOAST { get; set; }
 
         #endregion
     }
