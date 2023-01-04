@@ -3,15 +3,24 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <ServerGarbageCollection>true</ServerGarbageCollection>
-	  <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Original app with memory issues had older dependencies -->
+    <!-- 
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="7.0.1" />
-	  <PackageReference Include="Oracle.EntityFrameworkCore" Version="7.21.8" />
-	  <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="3.21.80" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+    <PackageReference Include="Oracle.EntityFrameworkCore" Version="7.21.8" />
+	  <PackageReference
+    Include="Oracle.ManagedDataAccess.Core" Version="3.21.80" />
+    <PackageReference
+    Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+-->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.10" />
+    <PackageReference Include="Oracle.EntityFrameworkCore" Version="6.21.61" />
+    <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="3.21.61" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
   </ItemGroup>
 </Project>
